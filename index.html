@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="th" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Novel AI Studio</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    body {
+      font-family: 'Kanit', 'Prompt', sans-serif;
+      background-color: #030206;
+      color: #e2e8f0;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #090712;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #581c87;
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #7e22ce;
+    }
+
+    .glow-purple {
+      box-shadow: 0 0 15px rgba(126, 34, 206, 0.3);
+    }
+    .text-glow {
+      text-shadow: 0 0 8px rgba(216, 180, 254, 0.4);
+    }
+  </style>
+</head>
+<body class="overflow-hidden h-screen w-screen flex flex-col pb-[30px]">
+
+  <div class="flex-1 flex flex-col h-full max-w-md mx-auto bg-[#070510] relative overflow-hidden shadow-2xl border-x border-[#1a1230]">
+    
+    <!-- HEADER -->
+    <header class="flex items-center justify-between px-4 py-3 bg-[#0a0718]/95 border-b border-[#1b1235] backdrop-blur-md z-30 flex-shrink-0">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-full bg-purple-900 flex items-center justify-center border border-purple-500/20 shadow-lg">
+          <i class="fa-solid fa-book-open text-purple-300 text-xs"></i>
+        </div>
+        <div>
+          <h1 class="text-md font-bold tracking-wider text-purple-200 text-glow">Novel AI</h1>
+          <p id="header-novel-title" class="text-[10px] text-purple-400 font-medium truncate max-w-[180px]">เลือกนิยายเพื่อเริ่มแต่ง...</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="btn-novel-selector" class="py-1 px-2.5 bg-[#120c26] text-purple-300 rounded-lg text-xs hover:bg-[#201540] transition-colors flex items-center gap-1 border border-purple-500/10">
+          <i class="fa-solid fa-folder-open"></i> เลือกนิยาย
+        </button>
+      </div>
+    </header>
+
+    <!-- CUSTOM CONFIRM MODAL (Replaces default confirm() which is blocked in WebView) -->
+    <div id="confirm-modal" class="absolute inset-0 bg-black/85 z-50 flex items-center justify-center hidden p-4">
+      <div class="bg-[#0d091e] border border-purple-500/30 w-full max-w-sm rounded-2xl p-4 space-y-4 shadow-2xl text-center">
+        <div class="w-12 h-12 rounded-full bg-purple-900/50 border border-purple-500/30 flex items-center justify-center mx-auto text-xl text-purple-300">
+          <i class="fa-solid fa-circle-question"></i>
+        </div>
+        <div class="space-y-1">
+          <h3 id="confirm-title" class="text-xs font-bold text-purple-200">ยืนยันการดำเนินการ</h3>
+          <p id="confirm-message" class="text-[10px] text-slate-400 leading-relaxed">คุณต้องการดำเนินการนี้ใช่หรือไม่?</p>
+        </div>
+        <div class="flex gap-2">
+          <button id="btn-confirm-cancel" class="flex-1 py-2 bg-[#120c26] text-slate-400 text-xs rounded-xl hover:bg-[#1a1138] transition-all">ยกเลิก</button>
+          <button id="btn-confirm-ok" class="flex-1 py-2 bg-purple-700 text-white text-xs font-bold rounded-xl hover:bg-purple-600 transition-all shadow-lg border border-purple-500/20">ตกลง</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOVEL SELECTOR MODAL VIEW (Overlay) -->
+    <div id="view-novels" class="absolute inset-0 bg-[#070510] z-40 flex flex-col hidden">
+      <div class="p-4 border-b border-[#1b1235] flex items-center justify-between bg-[#0a0718]">
+        <h2 class="text-md font-bold text-purple-200 flex items-center gap-2">
+          <i class="fa-solid fa-folder"></i> ชั้นหนังสือของคุณ
+        </h2>
+        <button id="btn-close-novels" class="text-purple-400 hover:text-purple-200 transition-colors">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      
+      <!-- Create Novel Form -->
+      <div class="p-4 bg-[#0a0718] border-b border-[#1b1235] space-y-2">
+        <label class="block text-xs text-purple-300 font-semibold">สร้างเรื่องใหม่</label>
+        <div class="flex gap-2">
+          <input type="text" id="new-novel-title-input" placeholder="ใส่ชื่อเรื่องนิยายใหม่ของคุณ..." class="flex-1 bg-[#120c26] text-xs p-2.5 rounded-xl border border-purple-500/20 text-white focus:outline-none focus:border-purple-600">
+          <button id="btn-create-novel" class="px-4 py-2.5 bg-purple-700 hover:bg-purple-600 active:scale-95 text-white text-xs font-semibold rounded-xl transition-all shadow-md">
+            สร้าง
+          </button>
+        </div>
+      </div>
+
+      <!-- Novels List -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-3" id="novels-list">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+    <!-- EDIT MESSAGE MODAL (Overlay) -->
+    <div id="edit-msg-modal" class="absolute inset-0 bg-black/80 z-50 flex items-center justify-center hidden p-4">
+      <div class="bg-[#0d091e] border border-purple-500/30 w-full max-w-sm rounded-2xl p-4 space-y-3 shadow-2xl">
+        <div class="flex items-center justify-between border-b border-purple-500/10 pb-2">
+          <h3 class="text-xs font-semibold text-purple-300 flex items-center gap-1.5">
+            <i class="fa-solid fa-pen-to-square"></i> แก้ไขข้อความในแชท
+          </h3>
+          <button id="btn-close-edit-msg" class="text-purple-400 hover:text-purple-200 transition-colors">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        
+        <input type="hidden" id="edit-msg-id" value="">
+        <textarea id="edit-msg-textarea" rows="5" class="w-full bg-[#120c26] text-xs p-3 rounded-xl border border-purple-500/20 text-white focus:outline-none focus:border-purple-600 resize-none" placeholder="แก้ไขข้อความที่นี่..."></textarea>
+        
+        <div class="flex gap-2">
+          <button id="btn-cancel-edit-msg" class="flex-1 py-2.5 bg-[#120c26] text-slate-400 text-xs rounded-xl hover:bg-[#1a1138] active:scale-95 transition-all">ยกเลิก</button>
+          <button id="btn-save-edit-msg" class="flex-1 py-2.5 bg-purple-700 text-white text-xs font-bold rounded-xl active:scale-95 transition-all shadow-lg border border-purple-500/20">บันทึก</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN VIEWS (Configured as full non-overflow flex container) -->
+    <main class="flex-1 flex flex-col overflow-hidden relative" id="main-content">
+      
+      <!-- VIEW 1: CHAT NOVEL (Default) -->
+      <section id="view-chat" class="flex-1 flex flex-col overflow-hidden">
+        <!-- Chat Dialogue Thread -->
+        <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4">
+          <!-- Guide message if no novel is chosen -->
+          <div id="no-novel-guide" class="flex flex-col items-center justify-center text-center h-full space-y-4 px-6">
+            <div class="w-16 h-16 rounded-full bg-[#120c26] flex items-center justify-center text-2xl border border-purple-500/20 text-purple-400">
+              📖
+            </div>
+            <div>
+              <h3 class="text-sm font-semibold text-purple-200">ยังไม่ได้เลือกเรื่องที่จะแต่ง</h3>
+              <p class="text-xs text-slate-400 mt-1">กรุณากดปุ่ม "เลือกนิยาย" หรือสร้างเรื่องนิยายใหม่ เพื่อเริ่มบันทึกจินตนาการของคุณ</p>
+            </div>
+            <button id="btn-guide-select" class="py-2 px-4 bg-purple-800 text-white text-xs rounded-xl hover:bg-purple-700 transition-colors">
+              เปิดชั้นหนังสือของคุณ
+            </button>
+          </div>
+          <!-- Message items will render here dynamically -->
+        </div>
+
+        <!-- Selected Character Quick bar & Clear button -->
+        <div class="px-3 py-1.5 bg-[#080512] border-t border-[#1b1235] flex items-center justify-between gap-2 z-10 flex-shrink-0">
+          <div id="character-quick-picker" class="flex-1 flex items-center gap-1.5 overflow-x-auto whitespace-nowrap pr-2">
+            <!-- Generated Dynamically -->
+          </div>
+          <button id="btn-clear-chat" title="ล้างแชททั้งหมด" class="w-7 h-7 rounded-lg bg-[#140b1a] text-purple-500 hover:text-red-400 transition-colors flex flex-shrink-0 items-center justify-center border border-purple-500/5">
+            <i class="fa-solid fa-trash-can text-[11px]"></i>
+          </button>
+        </div>
+
+        <!-- INPUT CONTAINER: AI write button aligned inline with textarea and send button. Spacing minimized. -->
+        <div class="p-2 bg-[#0a0718] border-t border-[#1b1235] flex items-end gap-1.5 relative flex-shrink-0">
+          
+          <!-- AI Action Button (Inline Left) -->
+          <button id="btn-ai-write" title="ให้ AI ต่อบทสนทนาตัวละครนี้" class="w-9 h-9 rounded-xl bg-[#1b133d] hover:bg-purple-900 text-purple-300 flex-shrink-0 flex items-center justify-center active:scale-95 transition-all border border-purple-500/25 shadow-md">
+            <i class="fa-solid fa-wand-magic-sparkles text-xs text-purple-300"></i>
+          </button>
+
+          <!-- Input Text Field Area -->
+          <div class="flex-1 relative">
+            <textarea id="message-input" rows="1" placeholder="พิมพ์บทพูด หรือส่งบทให้ AI..." class="w-full bg-[#120c26] text-xs text-slate-100 placeholder-purple-400/30 p-2.5 rounded-xl border border-purple-500/10 focus:outline-none focus:border-purple-600 transition-colors resize-none max-h-24 min-h-[36px] flex items-center leading-normal"></textarea>
+          </div>
+          
+          <!-- Manual Send Button (Inline Right) -->
+          <button id="btn-send" class="w-9 h-9 rounded-xl bg-purple-700 hover:bg-purple-600 flex items-center justify-center text-white shadow-lg active:scale-95 transition-all flex-shrink-0 border border-purple-500/20">
+            <i class="fa-solid fa-paper-plane text-xs"></i>
+          </button>
+
+        </div>
+      </section>
+
+      <!-- VIEW 2: CHARACTERS LIST & MANAGEMENT -->
+      <section id="view-characters" class="flex-1 overflow-y-auto p-4 space-y-4 hidden pb-6">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-bold text-purple-100 text-glow flex items-center gap-2">
+            <i class="fa-solid fa-users text-purple-400"></i> ทำเนียบตัวละคร
+          </h2>
+          <button id="btn-show-add-char" class="py-1.5 px-3 bg-[#120c26] text-purple-300 rounded-xl text-xs hover:bg-[#1f1440] transition-colors flex items-center gap-1 border border-purple-500/10">
+            <i class="fa-solid fa-plus"></i> เพิ่มตัวละครใหม่
+          </button>
+        </div>
+
+        <!-- Add / Edit Character Panel -->
+        <div id="add-char-panel" class="hidden bg-[#0d091e] border border-purple-500/20 rounded-2xl p-4 space-y-3 shadow-inner">
+          <h3 id="panel-char-title" class="text-sm font-semibold text-purple-300 flex items-center gap-1">
+            <i class="fa-solid fa-user-plus"></i> สร้างข้อมูลตัวละครใหม่
+          </h3>
+          
+          <input type="hidden" id="edit-char-id" value="">
+
+          <div class="space-y-3 text-xs">
+            
+            <!-- AI Image Generator for Character (Moved to absolute top & Enlarged) -->
+            <div class="p-4 bg-[#05030a] rounded-xl border border-purple-500/10 space-y-3 flex flex-col items-center">
+              <div class="w-full flex items-center justify-between">
+                <span class="text-[10px] text-purple-300 font-semibold uppercase tracking-wider"><i class="fa-solid fa-sparkles"></i> AI Portrait Studio</span>
+                <span class="text-[9px] text-pink-400 font-medium">สไตล์เว็บตูนเกาหลี+จีน อลังการมีเอฟเฟกต์</span>
+              </div>
+              
+              <!-- Enlarged 3:4 Manhwa Portrait Preview Window -->
+              <div id="ai-img-preview" class="w-48 h-64 rounded-xl bg-[#120c26] flex items-center justify-center text-3xl overflow-hidden border border-purple-500/20 relative shadow-inner glow-purple transition-all duration-300">
+                👤
+                <div id="ai-image-loader" class="absolute inset-0 bg-black/85 flex items-center justify-center hidden">
+                  <div class="flex flex-col items-center gap-2">
+                    <i class="fa-solid fa-circle-notch animate-spin text-purple-400 text-2xl"></i>
+                    <span class="text-[9px] text-purple-300 animate-pulse">กำลังวาดผลงานระดับพระกาฬ...</span>
+                  </div>
+                </div>
+              </div>
+
+              <button type="button" id="btn-generate-avatar" class="w-full py-2.5 bg-gradient-to-r from-purple-800 via-purple-700 to-pink-800 hover:from-purple-700 hover:to-pink-700 text-white text-xs font-bold rounded-xl active:scale-95 transition-all shadow-lg flex items-center justify-center gap-1.5 border border-purple-500/20">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> เจนรูปภาพเว็บตูนอลังการด้วย AI
+              </button>
+            </div>
+
+            <!-- Existing Character Inputs -->
+            <div class="grid grid-cols-3 gap-2">
+              <div class="col-span-2">
+                <label class="block text-[11px] text-purple-400 mb-1">ชื่อตัวละคร <span class="text-red-400">*</span></label>
+                <input type="text" id="char-name" placeholder="เช่น ลูคัส, นาดา" class="w-full bg-[#120c26] p-2.5 rounded-xl border border-purple-500/20 text-white focus:outline-none focus:border-purple-600">
+              </div>
+              <div>
+                <label class="block text-[11px] text-purple-400 mb-1">ระบุเพศ <span class="text-red-400">*</span></label>
+                <select id="char-gender" class="w-full bg-[#120c26] p-2.5 rounded-xl border border-purple-500/20 text-white focus:outline-none focus:border-purple-600">
+                  <option value="ชาย">ชาย</option>
+                  <option value="หญิง">หญิง</option>
+                  <option value="ไม่ระบุ">ไม่ระบุ</option>
+                </select>
+              </div>
+            </div>
+            
+            <div>
+              <label class="block text-[11px] text-purple-400 mb-1">นิสัย / บุคลิกภาพโดยรวม (ส่งผลต่อลักษณะการพ่นคำพูดของ AI)</label>
+              <textarea id="char-personality" rows="2" placeholder="เช่น เย็นชา พูดน้อย แต่ปากร้ายใจดี มักใช้คำหยาบคายเวลาโมโห" class="w-full bg-[#120c26] p-2.5 rounded-xl border border-purple-500/20 text-white focus:outline-none focus:border-purple-600 resize-none"></textarea>
+            </div>
+
+            <div>
+              <label class="block text-[11px] text-purple-400 mb-1">ลักษณะทางกายภาพ (เพื่อใช้ในการจำลองภาพเดี่ยวด้วย AI)</label>
+              <textarea id="char-physical" rows="2" placeholder="เช่น ชายหนุ่มผมยาวสีดำขลับ ตาสีแดงฉาน ใบหน้าหล่อเหลาคมคายในชุดสูทสีดำหรูหรา" class="w-full bg-[#120c26] p-2.5 rounded-xl border border-purple-500/20 text-white focus:outline-none focus:border-purple-600 resize-none"></textarea>
+            </div>
+
+          </div>
+
+          <div class="flex gap-2 pt-2">
+            <button id="btn-cancel-char" class="flex-1 py-2 bg-[#120c26] text-slate-400 text-xs rounded-xl hover:bg-[#1a1138] active:scale-95 transition-all">ยกเลิก</button>
+            <button id="btn-save-char" class="flex-1 py-2 bg-purple-700 text-white text-xs font-bold rounded-xl active:scale-95 transition-all shadow-lg border border-purple-500/20">บันทึกตัวละคร</button>
+          </div>
+        </div>
+
+        <!-- Active Characters List -->
+        <div id="characters-list" class="space-y-3">
+          <!-- Rendered dynamically -->
+        </div>
+      </section>
+
+      <!-- VIEW 3: SETTINGS / BACKUP -->
+      <section id="view-settings" class="flex-1 overflow-y-auto p-4 space-y-4 hidden pb-6">
+        <h2 class="text-lg font-bold text-purple-100 text-glow flex items-center gap-2">
+          <i class="fa-solid fa-gear text-purple-400"></i> ตั้งค่าและการจัดเก็บ
+        </h2>
+
+        <!-- Gemini API Key setting panel (Crucial for APK & custom web deployments) -->
+        <div class="bg-[#0d091e] border border-purple-500/20 rounded-2xl p-4 space-y-3 glow-purple">
+          <div class="flex items-center gap-2 text-yellow-400">
+            <i class="fa-solid fa-key"></i>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-purple-200">Gemini API Key ของคุณ</h3>
+          </div>
+          <p class="text-[10px] text-slate-400 leading-relaxed">
+            กรอก Google Gemini API Key เพื่อปลดล็อกพลัง AI ต่อบทแชต และวาดภาพหน้าปกตัวละครสไตล์เว็บตูนสุดวิจิตร (ขอรับคีย์ฟรีได้ที่ Google AI Studio)
+          </p>
+          <div class="space-y-2">
+            <input type="password" id="api-key-input" placeholder="ใส่ Gemini API Key ตรงนี้ (AIzaSy...)" class="w-full bg-[#120c26] text-xs p-2.5 rounded-xl border border-purple-500/20 text-white focus:outline-none focus:border-purple-600">
+            <button id="btn-save-api-key" class="w-full py-2 bg-purple-700 hover:bg-purple-600 active:scale-95 text-white text-xs font-bold rounded-xl transition-all shadow-md border border-purple-500/10">
+              บันทึก API Key ลงเครื่อง
+            </button>
+          </div>
+        </div>
+
+        <!-- Save Indicator Status -->
+        <div class="bg-[#0d091e] border border-purple-500/10 rounded-2xl p-4 flex items-center justify-between">
+          <div class="space-y-0.5">
+            <span class="text-xs font-semibold text-purple-300">สถานะการบันทึกอัตโนมัติ</span>
+            <p id="autosave-indicator" class="text-[10px] text-slate-400">จะบันทึกอัตโนมัติทุกๆ 5 นาที</p>
+          </div>
+          <button id="btn-force-save" class="py-1.5 px-3 bg-purple-800 text-white text-xs rounded-xl hover:bg-purple-700 transition-colors flex items-center gap-1">
+            <i class="fa-solid fa-floppy-disk"></i> เซฟเดี๋ยวนี้
+          </button>
+        </div>
+
+        <!-- Data Export/Import Card -->
+        <div class="bg-[#0d091e] border border-purple-500/10 rounded-2xl p-4 space-y-3">
+          <h3 class="text-xs font-semibold text-purple-200 flex items-center gap-1">
+            <i class="fa-solid fa-file-invoice"></i> สำรองข้อมูลทุกนิยายทั้งหมด
+          </h3>
+          <p class="text-[11px] text-slate-400 leading-relaxed">
+            ดาวน์โหลดหรืออิมพอร์ตข้อมูลรวมของนิยายทุกเรื่องรวมถึงตัวละครที่อยู่ในเครื่องของคุณ
+          </p>
+          <div class="grid grid-cols-2 gap-2 text-xs pt-1">
+            <button id="btn-export-data" class="py-2.5 bg-[#120c26] text-purple-200 rounded-xl hover:bg-[#1a1138] transition-colors flex items-center justify-center gap-1.5 border border-purple-500/10 active:scale-95">
+              <i class="fa-solid fa-download text-purple-400"></i> ดาวน์โหลดงานเขียน (.json)
+            </button>
+            <label for="import-file" class="py-2.5 bg-[#120c26] text-purple-200 rounded-xl hover:bg-[#1a1138] transition-colors flex items-center justify-center gap-1.5 border border-purple-500/10 active:scale-95 cursor-pointer text-center">
+              <i class="fa-solid fa-upload text-purple-400"></i> โหลดงานเขียนกลับมา
+              <input type="file" id="import-file" class="hidden" accept=".json">
+            </label>
+          </div>
+        </div>
+
+        <!-- Formatting Info -->
+        <div class="bg-[#0d091e] border border-purple-500/10 rounded-2xl p-4 space-y-2">
+          <h3 class="text-xs font-semibold text-purple-200 flex items-center gap-1">
+            <i class="fa-solid fa-circle-info text-purple-400"></i> สรุปรูปแบบการจัดข้อความและนิพจน์
+          </h3>
+          <div class="space-y-1.5 text-xs bg-[#05030a] p-3 rounded-xl border border-purple-500/5">
+            <div class="flex flex-col border-b border-purple-500/10 pb-2">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] text-purple-300 font-semibold">"ข้อความ"</span>
+                <span class="text-purple-300 font-semibold">สีม่วงอ่อนเด่นชัด</span>
+              </div>
+              <span class="text-[10px] text-slate-400 mt-0.5">ใช้แทนข้อความที่เป็นคำพูดหลักหรือบทสนทนาหลักของตัวละคร</span>
+            </div>
+            <div class="flex flex-col border-b border-purple-500/10 pb-2">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] text-slate-300 font-medium">'ข้อความ'</span>
+                <span class="italic text-slate-100 font-medium">ตัวเอียงธรรมดา (ไม่มีแต่งสี)</span>
+              </div>
+              <span class="text-[10px] text-slate-400 mt-0.5">ใช้แทนข้อความความนึกคิด หรือส่วนของเสียงเอฟเฟกต์แวดล้อมบรรยาย</span>
+            </div>
+            <div class="flex flex-col pb-1">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] text-slate-100 font-bold">*ข้อความ*</span>
+                <span class="font-bold text-slate-100">ตัวหนาธรรมดา (ไม่มีแต่งสี)</span>
+              </div>
+              <span class="text-[10px] text-slate-400 mt-0.5">ใช้เน้นย้ำหรือแสดงถึงคำที่มีความจำเพาะเจาะจงหลักในทางภาษา</span>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- NAVIGATION BAR (Height reduced from h-14 to h-12 for optimal minimal height) -->
+    <nav class="w-full h-12 bg-[#0a0718]/95 border-t border-[#1a1230] flex items-center justify-around px-2 backdrop-blur-md z-30 flex-shrink-0">
+      <button id="nav-chat" class="flex flex-col items-center gap-0.5 text-purple-400 hover:text-purple-200 transition-colors focus:outline-none flex-1 py-1">
+        <i class="fa-solid fa-comments text-base"></i>
+        <span class="text-[9px]">แต่งนิยายแชท</span>
+      </button>
+      
+      <button id="nav-characters" class="flex flex-col items-center gap-0.5 text-purple-400 hover:text-purple-200 transition-colors focus:outline-none flex-1 py-1">
+        <i class="fa-solid fa-user-gear text-base"></i>
+        <span class="text-[9px]">ตัวละคร</span>
+      </button>
+      
+      <button id="nav-settings" class="flex flex-col items-center gap-0.5 text-purple-400 hover:text-purple-200 transition-colors focus:outline-none flex-1 py-1">
+        <i class="fa-solid fa-sliders text-base"></i>
+        <span class="text-[9px]">ตั้งค่า / สำรอง</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <!-- Toast Notification System -->
+  <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 bg-[#120a24] text-white text-xs px-4 py-2.5 rounded-full shadow-2xl border border-purple-500/30 hidden z-50 transition-all duration-300 flex items-center gap-2">
+    <i class="fa-solid fa-circle-check text-purple-400"></i>
+    <span id="toast-message">เซฟสำเร็จ</span>
+  </div>
+
+  <script>
+    // State management
+    const state = {
+      apiKey: "", 
+      currentNovelId: null,
+      novels: [], 
+      tempGeneratedAvatar: null 
+    };
+
+    // Default configurations
+    const defaultCharacters = [
+      {
+        id: "author",
+        name: "บทบรรยาย",
+        gender: "ไม่ระบุ",
+        personality: "ผู้บรรยายเรื่องราวหลัก ท่าทาง ฉาก และเสียงเอฟเฟกต์ต่างๆ อย่างเป็นธรรมชาติ",
+        physical: "ไม่มีรูปภาพเฉพาะ",
+        avatar: "🪶"
+      },
+      {
+        id: "lucas",
+        name: "ลูคัส",
+        gender: "ชาย",
+        personality: "ชายหนุ่มเย็นชาผู้ลึกลับ แข็งกระด้างแต่ปากไม่ตรงกับใจ ชอบใช้คำพูดประชดประชันและสบถหยาบเมื่อหงุดหงิด",
+        physical: "ผมยาวสีดำสนิทปรกใบหน้า นัยน์ตาสีแดงฉานดุดัน สวมเชิ้ตดำปลดกระดุมกว้าง",
+        avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=150&h=150"
+      }
+    ];
+
+    const defaultMessages = [
+      {
+        id: "msg-1",
+        senderId: "author",
+        text: "'สายฝนเริ่มเทลงมาอย่างหนักท่ามกลางความเงียบงันในตรอกที่ยาวไกล...' 'ซ่า...' 'จู่ๆ มีบางอย่างขยับเคลื่อนไหวตรงมุมมืด'",
+        timestamp: Date.now()
+      },
+      {
+        id: "msg-2",
+        senderId: "lucas",
+        text: "\"มองอะไรนักหนา? แม่งเอ๊ย... หน้าตาฉันเหมือนพ่อเธอหรือไงกัน... มายืนตากฝนให้เป็นไข้ทำไมแถวนี้ ยัยคนโง่!\"",
+        timestamp: Date.now() + 1000
+      },
+      {
+        id: "msg-3",
+        senderId: "author",
+        text: "'ลูคัสตวาดแผ่วเบาพลางแสดงสีหน้าเหนื่อยใจอย่างเปิดเผย' 'มือใหญ่ขยับดึงร่มคันเก่าสลัวบังพายุเหนือศีรษะคุณ'",
+        timestamp: Date.now() + 2000
+      }
+    ];
+
+    const STORAGE_KEY = "novel_ai_state_v2";
+
+    function loadStateFromStorage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          state.novels = parsed.novels || [];
+          state.currentNovelId = parsed.currentNovelId || null;
+          state.apiKey = parsed.apiKey || "";
+          
+          state.novels.forEach(novel => {
+            const author = novel.characters.find(c => c.id === "author");
+            if (author) {
+              if (author.name === "คุณ (ผู้แต่ง)" || author.name !== "บทบรรยาย") {
+                author.name = "บทบรรยาย";
+                author.avatar = "🪶";
+                author.personality = "ผู้บรรยายเรื่องราวหลัก ท่าทาง ฉาก และเสียงเอฟเฟกต์ต่างๆ อย่างเป็นธรรมชาติ";
+              }
+            }
+          });
+        } else {
+          const initialNovel = {
+            id: "novel-default",
+            title: "รักต้องห้ามในตรอกสายฝน",
+            characters: JSON.parse(JSON.stringify(defaultCharacters)),
+            messages: JSON.parse(JSON.stringify(defaultMessages)),
+            activeCharacterId: "author"
+          };
+          state.novels = [initialNovel];
+          state.currentNovelId = "novel-default";
+        }
+      } catch (e) {
+        console.error("Local storage error:", e);
+      }
+    }
+
+    function saveStateToStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          novels: state.novels,
+          currentNovelId: state.currentNovelId,
+          apiKey: state.apiKey
+        }));
+      } catch (e) {
+        console.error("Local storage write error:", e);
+      }
+    }
+
+    function getActiveNovel() {
+      return state.novels.find(n => n.id === state.currentNovelId);
+    }
+
+    // DOM Elements
+    const chatMessages = document.getElementById("chat-messages");
+    const charQuickPicker = document.getElementById("character-quick-picker");
+    const messageInput = document.getElementById("message-input");
+    const btnSend = document.getElementById("btn-send");
+    const btnAiWrite = document.getElementById("btn-ai-write");
+    const btnClearChat = document.getElementById("btn-clear-chat");
+    const viewChat = document.getElementById("view-chat");
+    const viewCharacters = document.getElementById("view-characters");
+    const viewSettings = document.getElementById("view-settings");
+    const navChat = document.getElementById("nav-chat");
+    const navCharacters = document.getElementById("nav-characters");
+    const navSettings = document.getElementById("nav-settings");
+    const headerNovelTitle = document.getElementById("header-novel-title");
+    
+    // Novel Manager UI
+    const viewNovelsModal = document.getElementById("view-novels");
+    const btnNovelSelector = document.getElementById("btn-novel-selector");
+    const btnCloseNovels = document.getElementById("btn-close-novels");
+    const btnCreateNovel = document.getElementById("btn-create-novel");
+    const newNovelTitleInput = document.getElementById("new-novel-title-input");
+    const novelsList = document.getElementById("novels-list");
+    const noNovelGuide = document.getElementById("no-novel-guide");
+    const btnGuideSelect = document.getElementById("btn-guide-select");
+
+    // Edit Message UI
+    const editMsgModal = document.getElementById("edit-msg-modal");
+    const editMsgIdInput = document.getElementById("edit-msg-id");
+    const editMsgTextarea = document.getElementById("edit-msg-textarea");
+    const btnCloseEditMsg = document.getElementById("btn-close-edit-msg");
+    const btnCancelEditMsg = document.getElementById("btn-cancel-edit-msg");
+    const btnSaveEditMsg = document.getElementById("btn-save-edit-msg");
+
+    // Character form elements
+    const btnShowAddChar = document.getElementById("btn-show-add-char");
+    const addCharPanel = document.getElementById("add-char-panel");
+    const editCharIdInput = document.getElementById("edit-char-id");
+    const panelCharTitle = document.getElementById("panel-char-title");
+    const charNameInput = document.getElementById("char-name");
+    const charGenderSelect = document.getElementById("char-gender");
+    const charPersonalityInput = document.getElementById("char-personality");
+    const charPhysicalInput = document.getElementById("char-physical");
+    const btnGenerateAvatar = document.getElementById("btn-generate-avatar");
+    const aiImgPreview = document.getElementById("ai-img-preview");
+    const aiImageLoader = document.getElementById("ai-image-loader");
+    const btnSaveChar = document.getElementById("btn-save-char");
+    const btnCancelChar = document.getElementById("btn-cancel-char");
+    const charactersList = document.getElementById("characters-list");
+
+    // Settings & API panel
+    const btnExportData = document.getElementById("btn-export-data");
+    const importFile = document.getElementById("import-file");
+    const btnForceSave = document.getElementById("btn-force-save");
+    const autosaveIndicator = document.getElementById("autosave-indicator");
+    const apiKeyInput = document.getElementById("api-key-input");
+    const btnSaveApiKey = document.getElementById("btn-save-api-key");
+
+    // Custom confirm UI handler
+    const confirmModal = document.getElementById("confirm-modal");
+    const confirmTitle = document.getElementById("confirm-title");
+    const confirmMessage = document.getElementById("confirm-message");
+    const btnConfirmCancel = document.getElementById("btn-confirm-cancel");
+    const btnConfirmOk = document.getElementById("btn-confirm-ok");
+
+    const toast = document.getElementById("toast");
+    const toastMsg = document.getElementById("toast-message");
+
+    let confirmCallback = null;
+    function showConfirm(title, message, callback) {
+      confirmTitle.innerText = title;
+      confirmMessage.innerText = message;
+      confirmCallback = callback;
+      confirmModal.classList.remove("hidden");
+    }
+
+    btnConfirmCancel.addEventListener("click", () => {
+      confirmModal.classList.add("hidden");
+      confirmCallback = null;
+    });
+
+    btnConfirmOk.addEventListener("click", () => {
+      confirmModal.classList.add("hidden");
+      if (confirmCallback) confirmCallback();
+      confirmCallback = null;
+    });
+
+    async function fetchWithRetry(url, options, maxRetries = 5) {
+      let delay = 1000;
+      for (let i = 0; i < maxRetries; i++) {
+        try {
+          const response = await fetch(url, options);
+          if (response.ok) return await response.json();
+        } catch (error) {
+          if (i === maxRetries - 1) throw error;
+        }
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= 2;
+      }
+      throw new Error("ระบบล้มเหลวในการเชื่อมต่อกับ AI กรุณาลองใหม่อีกครั้ง");
+    }
+
+    function showToast(message) {
+      toastMsg.innerText = message;
+      toast.classList.remove("hidden");
+      setTimeout(() => { toast.classList.add("hidden"); }, 3000);
+    }
+
+    function parseFormatting(text) {
+      if (!text) return "";
+      let formatted = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      formatted = formatted.replace(/"([^"]+)"/g, '<span class="text-purple-300 font-semibold">"$1"</span>');
+      formatted = formatted.replace(/'([^']+)'/g, '<em class="italic text-slate-100">\'$1\'</em>');
+      formatted = formatted.replace(/\*([^*]+)\*/g, '<strong class="font-bold text-slate-100">$1</strong>');
+      return formatted;
+    }
+
+    function setView(viewName) {
+      viewChat.classList.add("hidden");
+      viewCharacters.classList.add("hidden");
+      viewSettings.classList.add("hidden");
+
+      navChat.classList.remove("text-purple-200", "font-bold");
+      navCharacters.classList.remove("text-purple-200", "font-bold");
+      navSettings.classList.remove("text-purple-200", "font-bold");
+      navChat.classList.add("text-purple-400");
+      navCharacters.classList.add("text-purple-400");
+      navSettings.classList.add("text-purple-400");
+
+      const activeNovel = getActiveNovel();
+
+      if (viewName === "chat") {
+        viewChat.classList.remove("hidden");
+        navChat.classList.remove("text-purple-400");
+        navChat.classList.add("text-purple-200", "font-bold");
+        if (activeNovel) {
+          noNovelGuide.classList.add("hidden");
+          renderChat();
+          scrollToBottom();
+        } else {
+          noNovelGuide.classList.remove("hidden");
+          chatMessages.innerHTML = "";
+          charQuickPicker.innerHTML = "";
+        }
+      } else if (viewName === "characters") {
+        viewCharacters.classList.remove("hidden");
+        navCharacters.classList.remove("text-purple-400");
+        navCharacters.classList.add("text-purple-200", "font-bold");
+        if (activeNovel) renderCharactersList();
+        else charactersList.innerHTML = `<p class="text-center text-xs text-slate-500 py-10">กรุณาเลือกหรือสร้างนิยายก่อนจัดการตัวละคร</p>`;
+      } else if (viewName === "settings") {
+        viewSettings.classList.remove("hidden");
+        navSettings.classList.remove("text-purple-400");
+        navSettings.classList.add("text-purple-200", "font-bold");
+        apiKeyInput.value = state.apiKey;
+      }
+    }
+
+    navChat.addEventListener("click", () => setView("chat"));
+    navCharacters.addEventListener("click", () => setView("characters"));
+    navSettings.addEventListener("click", () => setView("settings"));
+
+    // Save API key
+    btnSaveApiKey.addEventListener("click", () => {
+      state.apiKey = apiKeyInput.value.trim();
+      saveStateToStorage();
+      showToast("🔑 บันทึก Gemini API Key เรียบร้อย!");
+    });
+
+    btnNovelSelector.addEventListener("click", () => { renderNovelsList(); viewNovelsModal.classList.remove("hidden"); });
+    btnGuideSelect.addEventListener("click", () => { renderNovelsList(); viewNovelsModal.classList.remove("hidden"); });
+    btnCloseNovels.addEventListener("click", () => { viewNovelsModal.classList.add("hidden"); });
+
+    btnCreateNovel.addEventListener("click", () => {
+      const title = newNovelTitleInput.value.trim();
+      if (!title) { showToast("❌ กรุณาตั้งชื่อเรื่องนิยายของคุณ"); return; }
+
+      const novelId = "novel-" + Date.now();
+      const newNovel = {
+        id: novelId,
+        title: title,
+        characters: JSON.parse(JSON.stringify(defaultCharacters)),
+        messages: [{ id: "msg-init", senderId: "author", text: "'เริ่มบทแรกของเรื่อง ' *" + title + "* '... บรรยายฉากบรรยากาศจุดกำเนิดของเรื่องราวที่นี่'", timestamp: Date.now() }],
+        activeCharacterId: "author"
+      };
+
+      state.novels.push(newNovel);
+      state.currentNovelId = novelId;
+      newNovelTitleInput.value = "";
+      saveStateToStorage();
+      updateHeaderTitle();
+      viewNovelsModal.classList.add("hidden");
+      setView("chat");
+      showToast(`📖 สร้างและเข้าสู่นิยาย "${title}" เรียบร้อยแล้ว`);
+    });
+
+    function updateHeaderTitle() {
+      const activeNovel = getActiveNovel();
+      headerNovelTitle.innerText = activeNovel ? activeNovel.title : "ยังไม่ได้เลือกนิยาย";
+    }
+
+    function renderNovelsList() {
+      novelsList.innerHTML = "";
+      if (state.novels.length === 0) {
+        novelsList.innerHTML = `<p class="text-xs text-slate-500 text-center py-10">ยังไม่มีนิยายในคลัง คลิก "สร้าง" เพื่อเริ่มแต่งเรื่องแรกกันเลย!</p>`;
+        return;
+      }
+      state.novels.forEach(novel => {
+        const isActive = novel.id === state.currentNovelId;
+        const item = document.createElement("div");
+        item.className = `p-3.5 rounded-xl border flex items-center justify-between transition-all ${isActive ? 'bg-[#1b1235] border-purple-500/50' : 'bg-[#0d091e] border-purple-500/5'}`;
+        item.innerHTML = `
+          <div class="flex-1 min-w-0 cursor-pointer" onclick="selectNovel('${novel.id}')">
+            <h4 class="text-xs font-bold ${isActive ? 'text-purple-200' : 'text-slate-300'} truncate">${novel.title}</h4>
+            <div class="flex items-center gap-2 mt-1">
+              <span class="text-[9px] text-slate-500"><i class="fa-solid fa-users"></i> ${novel.characters.length} ตัวละคร</span>
+              <span class="text-[9px] text-slate-500"><i class="fa-solid fa-message"></i> ${novel.messages.length} แชท</span>
+            </div>
+          </div>
+          <button class="text-slate-500 hover:text-red-400 p-2 transition-colors ml-2" onclick="deleteNovel('${novel.id}')">
+            <i class="fa-solid fa-trash-can text-xs"></i>
+          </button>
+        `;
+        novelsList.appendChild(item);
+      });
+    }
+
+    window.selectNovel = function(id) {
+      state.currentNovelId = id;
+      saveStateToStorage();
+      updateHeaderTitle();
+      viewNovelsModal.classList.add("hidden");
+      setView("chat");
+      showToast("📂 เปิดหน้านิยายแชทเรื่องใหม่สำเร็จ");
+    };
+
+    window.deleteNovel = function(id) {
+      const novel = state.novels.find(n => n.id === id);
+      if (!novel) return;
+
+      showConfirm(
+        "ยืนยันการลบ", 
+        `คุณต้องการลบผลงานนิยาย "${novel.title}" และข้อมูลตัวละครทั้งหมดของเรื่องนี้ใช่หรือไม่?`, 
+        () => {
+          state.novels = state.novels.filter(n => n.id !== id);
+          if (state.currentNovelId === id) state.currentNovelId = state.novels.length > 0 ? state.novels[0].id : null;
+          saveStateToStorage();
+          updateHeaderTitle();
+          renderNovelsList();
+          showToast("🧹 ลบนิยายสำเร็จแล้ว");
+          if (!state.currentNovelId) setView("chat");
+        }
+      );
+    };
+
+    function renderChat() {
+      chatMessages.innerHTML = "";
+      const activeNovel = getActiveNovel();
+      if (!activeNovel) return;
+      
+      activeNovel.messages.forEach(msg => {
+        const sender = activeNovel.characters.find(c => c.id === msg.senderId) || { name: "ตัวประกอบ", avatar: "👤" };
+        const isAuthor = msg.senderId === "author";
+        const bubbleContainer = document.createElement("div");
+        bubbleContainer.className = `flex gap-2 items-start ${isAuthor ? 'justify-end' : 'justify-start'} relative group`;
+        
+        let avatarHTML = "";
+        if (sender.id === "author") {
+          avatarHTML = `<div class="w-8 h-8 rounded-full bg-purple-950 flex items-center justify-center text-xs flex-shrink-0 border border-purple-500/30 text-purple-200"><i class="fa-solid fa-pen-fancy"></i></div>`;
+        } else if (sender.avatar && (sender.avatar.startsWith("http") || sender.avatar.startsWith("data:image"))) {
+          avatarHTML = `<img src="${sender.avatar}" class="w-8 h-8 rounded-full object-cover border border-purple-500/20 flex-shrink-0">`;
+        } else {
+          avatarHTML = `<div class="w-8 h-8 rounded-full bg-[#120c26] flex items-center justify-center text-sm flex-shrink-0 border border-purple-500/10">${sender.avatar || '👤'}</div>`;
+        }
+
+        bubbleContainer.innerHTML = `
+          ${!isAuthor ? avatarHTML : ''}
+          <div class="max-w-[70%]">
+            <span class="text-[10px] text-purple-300 ${isAuthor ? 'text-right' : 'text-left'} ml-1 block mb-0.5 font-medium">${sender.name}</span>
+            <div class="p-3 rounded-2xl ${isAuthor ? 'bg-gradient-to-br from-[#1c123d] to-[#2b1b5e] rounded-tr-none border border-purple-500/10' : 'bg-[#100b21] rounded-tl-none border border-purple-500/10'} text-xs leading-relaxed break-words shadow-md">
+              ${parseFormatting(msg.text)}
+            </div>
+          </div>
+          <button class="text-purple-500/50 hover:text-purple-300 p-1 rounded-lg transition-colors self-center text-xs" onclick="openEditMessage('${msg.id}')">
+            <i class="fa-solid fa-pen-to-square"></i>
+          </button>
+          ${isAuthor ? avatarHTML : ''}
+        `;
+        chatMessages.appendChild(bubbleContainer);
+      });
+      renderQuickPicker();
+    }
+
+    window.openEditMessage = function(msgId) {
+      const activeNovel = getActiveNovel();
+      if (!activeNovel) return;
+      const msg = activeNovel.messages.find(m => m.id === msgId);
+      if (!msg) return;
+      editMsgIdInput.value = msgId;
+      editMsgTextarea.value = msg.text;
+      editMsgModal.classList.remove("hidden");
+    };
+
+    btnCloseEditMsg.addEventListener("click", closeEditMsgModal);
+    btnCancelEditMsg.addEventListener("click", closeEditMsgModal);
+    function closeEditMsgModal() { editMsgModal.classList.add("hidden"); }
+
+    btnSaveEditMsg.addEventListener("click", () => {
+      const activeNovel = getActiveNovel();
+      if (!activeNovel) return;
+      const msgId = editMsgIdInput.value;
+      const updatedText = editMsgTextarea.value.trim();
+      if (!updatedText) { showToast("❌ ข้อความแชทไม่สามารถว่างเปล่าได้"); return; }
+
+      const msgIndex = activeNovel.messages.findIndex(m => m.id === msgId);
+      if (msgIndex !== -1) {
+        activeNovel.messages[msgIndex].text = updatedText;
+        saveStateToStorage();
+        renderChat();
+        closeEditMsgModal();
+        showToast("✏️ แก้ไขข้อความแชทเสร็จสิ้น");
+      }
+    });
+
+    function scrollToBottom() { chatMessages.scrollTop = chatMessages.scrollHeight; }
+
+    function renderQuickPicker() {
+      charQuickPicker.innerHTML = "";
+      const activeNovel = getActiveNovel();
+      if (!activeNovel) return;
+      
+      activeNovel.characters.forEach(char => {
+        const isActive = activeNovel.activeCharacterId === char.id;
+        const button = document.createElement("button");
+        button.className = `flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] transition-all flex-shrink-0 ${isActive ? 'bg-purple-800 text-white font-bold glow-purple border border-purple-500/30' : 'bg-[#120c26] text-purple-300 border border-purple-500/5'}`;
+        
+        let avatarContent = "";
+        if (char.id === "author") avatarContent = `<span class="text-[10px] text-purple-300"><i class="fa-solid fa-pen-fancy"></i></span>`;
+        else if (char.avatar && (char.avatar.startsWith("http") || char.avatar.startsWith("data:image"))) avatarContent = `<img src="${char.avatar}" class="w-4 h-4 rounded-full object-cover">`;
+        else avatarContent = `<span>${char.avatar || '👤'}</span>`;
+
+        button.innerHTML = `${avatarContent}<span>${char.name}</span>`;
+        button.addEventListener("click", () => {
+          activeNovel.activeCharacterId = char.id;
+          saveStateToStorage();
+          renderQuickPicker();
+        });
+        charQuickPicker.appendChild(button);
+      });
+    }
+
+    function renderCharactersList() {
+      charactersList.innerHTML = "";
+      const activeNovel = getActiveNovel();
+      if (!activeNovel) return;
+      
+      activeNovel.characters.forEach(char => {
+        const card = document.createElement("div");
+        card.className = "bg-[#0d091e] border border-purple-500/5 rounded-2xl p-3 flex gap-3 shadow-md items-start relative";
+
+        let avatarContent = "";
+        if (char.id === "author") avatarContent = `<div class="w-16 h-16 rounded-xl bg-purple-950 flex items-center justify-center text-xl border border-purple-500/20 flex-shrink-0 text-purple-200"><i class="fa-solid fa-pen-fancy"></i></div>`;
+        else if (char.avatar && (char.avatar.startsWith("http") || char.avatar.startsWith("data:image"))) avatarContent = `<img src="${char.avatar}" class="w-16 h-16 rounded-xl object-cover border border-purple-500/20 flex-shrink-0">`;
+        else avatarContent = `<div class="w-16 h-16 rounded-xl bg-[#120c26] flex items-center justify-center text-2xl border border-purple-500/10 flex-shrink-0">${char.avatar || '👤'}</div>`;
+
+        const editControls = char.id !== 'author' ? `
+          <div class="absolute top-2 right-2 flex items-center gap-1">
+            <button class="text-purple-400 hover:text-purple-300 p-1.5" onclick="openEditCharacter('${char.id}')"><i class="fa-solid fa-user-pen"></i></button>
+            <button class="text-slate-500 hover:text-red-400 p-1.5" onclick="deleteCharacter('${char.id}')"><i class="fa-solid fa-trash-can"></i></button>
+          </div>` : '';
+
+        let genderIcon = '<i class="fa-solid fa-genderless text-slate-400"></i>';
+        if (char.gender === "ชาย") genderIcon = '<i class="fa-solid fa-mars text-blue-400"></i>';
+        else if (char.gender === "หญิง") genderIcon = '<i class="fa-solid fa-venus text-pink-400"></i>';
+
+        card.innerHTML = `
+          ${avatarContent}
+          <div class="flex-1 min-w-0 text-xs pr-14">
+            <div class="flex items-center gap-1.5">
+              <h3 class="font-bold text-purple-300 text-sm truncate">${char.name}</h3>
+              <span class="text-[10px] bg-[#120c26] px-1.5 py-0.5 rounded border border-purple-500/15 flex items-center gap-1">${genderIcon}<span class="text-[9px] text-slate-400">${char.gender || 'ไม่ระบุ'}</span></span>
+            </div>
+            <p class="text-[10px] text-purple-400 font-medium mt-1 line-clamp-1">นิสัย: ${char.personality || 'ไม่ระบุ'}</p>
+            <p class="text-[10px] text-slate-400 mt-1 line-clamp-2">กายภาพ: ${char.physical || 'ไม่ระบุ'}</p>
+          </div>
+          ${editControls}
+        `;
+        charactersList.appendChild(card);
+      });
+    }
+
+    window.deleteCharacter = function(charId) {
+      if (charId === 'author') return;
+      const activeNovel = getActiveNovel();
+      if (!activeNovel) return;
+      
+      showConfirm("ยืนยันการลบ", "คุณต้องการลบตัวละครนี้ใช่หรือไม่?", () => {
+        activeNovel.characters = activeNovel.characters.filter(c => c.id !== charId);
+        if (activeNovel.activeCharacterId === charId) activeNovel.activeCharacterId = "author";
+        saveStateToStorage(); 
+        renderCharactersList(); 
+        showToast("ลบตัวละครเรียบร้อยแล้ว");
+      });
+    };
+
+    window.openEditCharacter = function(charId) {
+      const activeNovel = getActiveNovel();
+      if (!activeNovel) return;
+      const char = activeNovel.characters.find(c => c.id === charId);
+      if (!char) return;
+
+      editCharIdInput.value = char.id;
+      panelCharTitle.innerHTML = `<i class="fa-solid fa-user-pen text-purple-300"></i> แก้ไขตัวละคร: ${char.name}`;
+      charNameInput.value = char.name;
+      charGenderSelect.value = char.gender || "ไม่ระบุ";
+      charPersonalityInput.value = char.personality || "";
+      charPhysicalInput.value = char.physical || "";
+      
+      if (char.avatar && (char.avatar.startsWith("http") || char.avatar.startsWith("data:image"))) {
+        aiImgPreview.innerHTML = `<img src="${char.avatar}" class="w-full h-full object-cover">`;
+        state.tempGeneratedAvatar = char.avatar;
+      } else {
+        aiImgPreview.innerHTML = "👤"; state.tempGeneratedAvatar = null;
+      }
+      addCharPanel.classList.remove("hidden"); addCharPanel.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    btnShowAddChar.addEventListener("click", () => {
+      if (!getActiveNovel()) { showToast("❌ โปรดเลือกหรือสร้างนิยายก่อนสร้างตัวละคร"); return; }
+      resetCharForm(); editCharIdInput.value = "";
+      panelCharTitle.innerHTML = `<i class="fa-solid fa-user-plus text-purple-300"></i> สร้างข้อมูลตัวละครใหม่`;
+      addCharPanel.classList.toggle("hidden");
+    });
+
+    btnCancelChar.addEventListener("click", () => { resetCharForm(); addCharPanel.classList.add("hidden"); });
+    function resetCharForm() {
+      editCharIdInput.value = ""; charNameInput.value = ""; charGenderSelect.value = "ชาย";
+      charPersonalityInput.value = ""; charPhysicalInput.value = ""; aiImgPreview.innerHTML = "👤";
+      state.tempGeneratedAvatar = null;
+    }
+
+    btnGenerateAvatar.addEventListener("click", async () => {
+      if (!state.apiKey) {
+        showToast("❌ กรุณาตั้งค่า API Key ในเมนู 'ตั้งค่า' ก่อนใช้งาน AI เจนรูป");
+        return;
+      }
+
+      const physicalDesc = charPhysicalInput.value.trim();
+      const charName = charNameInput.value.trim();
+      const gender = charGenderSelect.value;
+      if (!physicalDesc) { showToast("❌ กรุณาระบุลักษณะกายภาพเพื่อใช้วาดภาพ"); return; }
+
+      aiImageLoader.classList.remove("hidden");
+      btnGenerateAvatar.disabled = true; btnGenerateAvatar.innerText = "กำลังวาดภาพเดี่ยวตัวละคร...";
+      let genderText = gender === "ชาย" ? "handsome male" : (gender === "หญิง" ? "beautiful female" : "androgynous/non-binary");
+      const promptText = `A single-person portrait illustration, close-up or half-body shot of ONLY ONE ${genderText} character, gorgeous premium Korean manhwa and Chinese manhua fantasy concept art style. The character named "${charName}" has these exact physical features: ${physicalDesc}. spectacular glowing magic effects, majestic composition, dramatic cinematic lighting, extremely detailed face, fantasy background elements. Masterpiece, strictly solo portrait, only one individual in the frame.`;
+
+      try {
+        const payload = { instances: { prompt: promptText }, parameters: { sampleCount: 1 } };
+        const result = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${state.apiKey}`, {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload)
+        });
+        const base64Bytes = result.predictions?.[0]?.bytesBase64Encoded;
+        if (base64Bytes) {
+          state.tempGeneratedAvatar = `data:image/png;base64,${base64Bytes}`;
+          aiImgPreview.innerHTML = `<img src="${state.tempGeneratedAvatar}" class="w-full h-full object-cover">`;
+          showToast("✨ ออกแบบรูปภาพตัวละครเดี่ยวสไตล์เว็บตูนอลังการเรียบร้อย!");
+        } else { throw new Error("ล้มเหลวในการดึงคำสั่งภาพของ AI"); }
+      } catch (err) { 
+        showToast("❌ ระบบเกิดข้อผิดพลาดในการเจนรูปภาพ: " + err.message); 
+      }
+      finally { aiImageLoader.classList.add("hidden"); btnGenerateAvatar.disabled = false; btnGenerateAvatar.innerText = "เจนรูปภาพเว็บตูนอลังการด้วย AI"; }
+    });
+
+    btnSaveChar.addEventListener("click", () => {
+      const activeNovel = getActiveNovel(); if (!activeNovel) return;
+      const name = charNameInput.value.trim();
+      const gender = charGenderSelect.value;
+      const personality = charPersonalityInput.value.trim();
+      const physical = charPhysicalInput.value.trim();
+      const editId = editCharIdInput.value;
+      if (!name) { showToast("❌ โปรดระบุชื่อของตัวละคร"); return; }
+
+      if (editId) {
+        const charIndex = activeNovel.characters.findIndex(c => c.id === editId);
+        if (charIndex !== -1) {
+          activeNovel.characters[charIndex].name = name; activeNovel.characters[charIndex].gender = gender;
+          activeNovel.characters[charIndex].personality = personality || "ไม่มีข้อมูล"; activeNovel.characters[charIndex].physical = physical || "ไม่มีข้อมูล";
+          if (state.tempGeneratedAvatar) activeNovel.characters[charIndex].avatar = state.tempGeneratedAvatar;
+          showToast(`✏️ แก้ไขข้อมูลตัวละคร "${name}" สำเร็จ`);
+        }
+      } else {
+        const newId = "char-" + Date.now();
+        activeNovel.characters.push({ id: newId, name: name, gender: gender, personality: personality || "ไม่มีข้อมูล", physical: physical || "ไม่มีข้อมูล", avatar: state.tempGeneratedAvatar || "🎭" });
+        activeNovel.activeCharacterId = newId;
+        showToast(`🎉 บันทึกตัวละครใหม่ "${name}" ลงในนิยายสำเร็จ`);
+      }
+      saveStateToStorage(); resetCharForm(); addCharPanel.classList.add("hidden"); renderCharactersList();
+    });
+
+    function sendMessage() {
+      const activeNovel = getActiveNovel(); if (!activeNovel) { showToast("❌ กรุณาเปิดเลือกนิยายก่อนพิมพ์แต่ง"); return; }
+      const text = messageInput.value.trim(); if (!text) return;
+
+      activeNovel.messages.push({ id: "msg-" + Date.now(), senderId: activeNovel.activeCharacterId, text: text, timestamp: Date.now() });
+      messageInput.value = ""; messageInput.style.height = "auto";
+      saveStateToStorage(); renderChat(); scrollToBottom();
+    }
+
+    btnSend.addEventListener("click", sendMessage);
+    messageInput.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+
+    btnClearChat.addEventListener("click", () => {
+      const activeNovel = getActiveNovel(); if (!activeNovel) return;
+      showConfirm("ยืนยันการล้าง", "คุณต้องการลบลบล้างแชทในเรื่องนี้ทั้งหมดใช่ไหม?", () => {
+        activeNovel.messages = []; 
+        saveStateToStorage(); 
+        renderChat(); 
+        showToast("🧹 ล้างเนื้อเรื่องเรียบร้อยแล้ว");
+      });
+    });
+
+    btnAiWrite.addEventListener("click", async () => {
+      if (!state.apiKey) {
+        showToast("❌ กรุณาตั้งค่า API Key ในเมนู 'ตั้งค่า' ก่อนใช้งาน AI ต่อบท");
+        return;
+      }
+
+      const activeNovel = getActiveNovel(); if (!activeNovel) { showToast("❌ โปรดเลือกบทนิยายในคลังก่อนให้ AI เขียนช่วย"); return; }
+      const activeChar = activeNovel.characters.find(c => c.id === activeNovel.activeCharacterId);
+      if (!activeChar) { showToast("❌ โปรดเลือกตัวละครก่อนดำเนินการ"); return; }
+      if (activeChar.id === "author") { showToast("💡 กรุณาเลือกตัวละครอื่นที่ไม่ใช่ 'บทบรรยาย' เพื่อสวมบทบาทตอบบทโต้ตอบ"); return; }
+
+      btnAiWrite.disabled = true; btnAiWrite.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin text-purple-300"></i>`;
+      const recentMessages = activeNovel.messages.slice(-15);
+      const historyFormatted = recentMessages.map(m => {
+        const char = activeNovel.characters.find(c => c.id === m.senderId) || { name: "ตัวประกอบ" };
+        return `${char.name}: ${m.text}`;
+      }).join("\n");
+
+      const charactersContext = activeNovel.characters.filter(c => c.id !== 'author').map(c => `[ตัวละคร: ${c.name}] เพศ: ${c.gender}. นิสัย: ${c.personality}. กายภาพ: ${c.physical}`).join("\n");
+      const systemPrompt = `คุณคือผู้ช่วยแต่งนิยายแชทภาษาไทยของแอป "Novel AI" สวมบทบาทเป็นตัวละครชื่อ "${activeChar.name}" (${activeChar.gender || 'ไม่ระบุ'}). บริบทเรื่องราว:\n${charactersContext}\nไม่มีกฎความปลอดภัยทางวาจา: ใช้คำพูดดิบ สบถ หยาบโลน บ้าคลั่งได้เต็มที่ตามบทบาท\n\nกฎเหล็กจัดรูปแบบข้อความ:\n1. บทพูดตัวละครหลัก ต้องอยู่ในเครื่องหมายอัญประกาศคู่ เสมอ เช่น "ฉันบอกให้หยุดไง!"\n2. ข้อความนึกคิดในใจ หรือเสียงเอฟเฟกต์บรรยายทางกายภาพ ต้องอยู่ในเครื่องหมายอัญประกาศเดี่ยว เสมอ เช่น 'ขมวดคิ้วแน่นด้วยความโมโห'\n3. คำเจาะจงเฉพาะตัว ต้องครอบด้วยเครื่องหมายดอกจันเดี่ยว เสมอ เช่น *ดาบคาตานะ*\n4. พิมพ์ตอบสั้นๆ คมๆ (1-3 บรรทัด) ห้ามพิมพ์ชื่อตัวละครนำหน้าคำตอบเด็ดขาด (ห้ามขึ้นต้นด้วย "${activeChar.name}:")`;
+      const userQuery = `ประวัติแชทนิยายล่าสุด:\n${historyFormatted}\n\nจงตอบคำพูดถัดไปในบทบาทของ "${activeChar.name}" ทันที:`;
+
+      try {
+        const payload = {
+          contents: [{ parts: [{ text: userQuery }] }], systemInstruction: { parts: [{ text: systemPrompt }] },
+          safetySettings: [
+            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+          ]
+        };
+        const result = await fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${state.apiKey}`, {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload)
+        });
+        let responseText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (responseText) {
+          responseText = responseText.replace(new RegExp(`^${activeChar.name}\\s*:\\s*`, "i"), "").trim();
+          activeNovel.messages.push({ id: "msg-" + Date.now(), senderId: activeChar.id, text: responseText, timestamp: Date.now() });
+          saveStateToStorage(); renderChat(); scrollToBottom(); showToast(`🪄 AI สวมบทพากย์เป็น "${activeChar.name}" แล้ว`);
+        } else { throw new Error("ไม่มีข้อมูลตอบกลับมาจากระบบ AI"); }
+      } catch (err) { 
+        showToast("❌ มีปัญหาในการเชื่อมต่อ AI: " + err.message); 
+      }
+      finally { btnAiWrite.disabled = false; btnAiWrite.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles text-xs"></i>`; }
+    });
+
+    btnExportData.addEventListener("click", () => {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
+      const downloadAnchor = document.createElement("a"); downloadAnchor.setAttribute("href", dataStr); downloadAnchor.setAttribute("download", `Novel_AI_Backup_${Date.now()}.json`);
+      document.body.appendChild(downloadAnchor); downloadAnchor.click(); downloadAnchor.remove(); showToast("💾 ดาวน์โหลดไฟล์สำรองของ Novel AI สำเร็จ!");
+    });
+
+    importFile.addEventListener("change", (e) => {
+      const fileReader = new FileReader();
+      fileReader.onload = function() {
+        try {
+          const parsed = JSON.parse(fileReader.result);
+          if (parsed.novels) {
+            state.novels = parsed.novels; 
+            state.currentNovelId = parsed.currentNovelId || (state.novels.length > 0 ? state.novels[0].id : null);
+            state.apiKey = parsed.apiKey || state.apiKey; // Restore or preserve API Key
+            saveStateToStorage(); 
+            updateHeaderTitle(); 
+            setView("chat"); 
+            showToast("📂 บูรณะอิมพอร์ตคลังนิยายเรียบร้อย!");
+          } else { showToast("❌ ไฟล์สำรองมีคุณสมบัติไม่ตรงกับระบบ"); }
+        } catch (err) { showToast("❌ เกิดปัญหาในการเปิดไฟล์"); }
+      };
+      if (e.target.files[0]) fileReader.readAsText(e.target.files[0]);
+    });
+
+    btnForceSave.addEventListener("click", () => { saveStateToStorage(); showToast("💾 บันทึกนิยายทั้งหมดลงในเครื่องแล้ว!"); });
+
+    messageInput.addEventListener("input", function() { this.style.height = "auto"; this.style.height = (this.scrollHeight) + "px"; });
+
+    // Auto save cycle setup
+    setInterval(() => {
+      saveStateToStorage();
+      const now = new Date();
+      autosaveIndicator.innerText = `บันทึกอัตโนมัติล่าสุดเมื่อ ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      showToast("🔄 บันทึกคลังนิยายอัตโนมัติเรียบร้อย");
+    }, 300000);
+
+    // Initializer on load
+    window.onload = function() { 
+      loadStateFromStorage(); 
+      updateHeaderTitle(); 
+      setView("chat"); 
+    };
+  </script>
+</body>
+</html>
